@@ -1,0 +1,16 @@
+{
+  "name": "syncerp",
+  "version": "1.0.0",
+  "description": "SyncERP — Wholesale & Distribution ERP/CRM System",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install --prefix backend && npm install --prefix frontend",
+    "start:backend": "npm start --prefix backend",
+    "start:frontend": "npm run dev --prefix frontend",
+    "dev": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+    "install:dev": "npm install concurrently --save-dev && npm run install:all"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
