@@ -1,11 +1,71 @@
-# SyncERP — Wholesale & Distribution ERP/CRM System
+# SyncERP — Wholesale & Distribution ERP/CRM
 
-[![Node.js](https://img.shields.io/badge/Node.js-20+-green)](https://nodejs.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)](https://typescriptlang.org)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue)](https://postgresql.org)
-[![React](https://img.shields.io/badge/React-18-blue)](https://react.dev)
+[![Node.js](https://img.shields.io/badge/Node.js-20+-green?logo=node.js)](https://nodejs.org)
+[![React](https://img.shields.io/badge/React-18-blue?logo=react)](https://react.dev)
+[![SQLite](https://img.shields.io/badge/SQLite-3-blue?logo=sqlite)](https://sqlite.org)
+[![Docker](https://img.shields.io/badge/Docker-ready-blue?logo=docker)](https://docker.com)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-A production-ready ERP/CRM system for wholesale and distribution companies. Manages customers, products, purchase orders, delivery challans, GST invoices, and CRM follow-ups.
+A production-ready ERP/CRM system for wholesale and distribution companies. Built with **Node.js + Express + SQLite** (backend) and **React + Vite** (frontend).
+
+---
+
+## 📋 Table of Contents
+
+- [Features](#-features)
+- [Tech Stack](#-tech-stack)
+- [Project Structure](#-project-structure)
+- [Quick Start (Local)](#-quick-start-local-setup)
+- [Environment Variables](#-environment-variables)
+- [API Reference](#-api-reference)
+- [Deployment](#-deployment)
+  - [Docker](#option-a-docker-recommended)
+  - [Vercel + Render](#option-b-vercel--render-free-cloud)
+  - [Railway](#option-c-railway)
+- [GitHub Actions CI/CD](#-github-actions-cicd)
+- [Assumptions](#-assumptions-made)
+- [Demo Credentials](#-demo-credentials)
+
+---
+
+## ✨ Features
+
+| Module | Features |
+|--------|----------|
+| **Auth** | JWT login, 4 role-based access levels (admin, sales, warehouse, accounts) |
+| **Dashboard** | KPIs, revenue chart, top products, recent invoices, pending follow-ups |
+| **Customers** | CRUD, search/filter, customer detail with invoice & follow-up history |
+| **Products** | CRUD, SKU, category, unit price, current stock, min stock alert, location/warehouse |
+| **Inventory / Stock** | Live stock levels, stock movement log (IN/OUT), created-by tracking |
+| **Purchase Orders** | Multi-item POs, auto stock increment on receipt |
+| **Sales Challans** | Customer selection, multi-product lines, auto challan number, Draft → Confirmed flow, stock deduction, product snapshot data |
+| **Invoices** | GST breakdown, payment recording, status tracking (unpaid / partial / paid) |
+| **CRM Follow-ups** | Call/email/visit/WhatsApp tracking, pending dashboard widget |
+| **Suppliers** | CRUD |
+
+### Business Logic Highlights
+- ✅ Confirming a challan **deducts stock atomically** in a DB transaction
+- ✅ Insufficient stock returns HTTP 400 with a clear error message
+- ✅ **Product snapshot** stored in `challan_items` — history is immutable even if product is edited later
+- ✅ Cancelling a confirmed challan **restores stock** and logs the reversal movement
+- ✅ All stock movements record `created_by`, `type`, `qty`, `reason`, `reference`, and `timestamp`
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Runtime | Node.js 20 |
+| Framework | Express.js |
+| Database | SQLite 3 (via `better-sqlite3`) |
+| Auth | JWT (`jsonwebtoken` + `bcryptjs`) |
+| Frontend | React 18 + Vite 5 |
+| Styling | Vanilla CSS (custom dark design system) |
+| Charts | Recharts |
+| Containerisation | Docker + Docker Compose |
+| CI/CD | GitHub Actions |
+| Hosting | Vercel (frontend) + Render (backend) |
 
 ---
 
@@ -13,339 +73,356 @@ A production-ready ERP/CRM system for wholesale and distribution companies. Mana
 
 ```
 SyncERP/
-├── backend/                   # Express + TypeScript + PostgreSQL API
-│   ├── src/
-│   │   ├── db/
-│   │   │   ├── pool.ts        # PostgreSQL connection pool
-│   │   │   ├── migrate.ts     # Schema migrations
-│   │   │   └── seed.ts        # Seed data
-│   │   ├── middleware/
-│   │   │   └── validate.ts    # Zod validation + error handler
-│   │   ├── routes/
-│   │   │   ├── dashboard.ts
-│   │   │   ├── customers.ts
-│   │   │   ├── products.ts
-│   │   │   ├── suppliers.ts
-│   │   │   ├── purchaseOrders.ts
-│   │   │   ├── challans.ts
-│   │   │   ├── invoices.ts
-│   │   │   ├── crm.ts
-│   │   │   └── stock.ts
-│   │   ├── types/
-│   │   │   └── schemas.ts     # Zod validation schemas
-│   │   └── server.ts          # App entry point
-│   ├── .env.example
-│   ├── tsconfig.json
+├── backend/
+│   ├── server.js           # Express API — all routes in one file
+│   ├── db.js               # SQLite schema, migrations & seed data
+│   ├── Dockerfile          # Backend container (Node 20 Alpine)
+│   ├── .env.example        # Environment variable template
 │   └── package.json
-├── frontend/                  # React + Vite frontend
+├── frontend/
 │   ├── src/
-│   │   ├── pages/             # Dashboard, Customers, Products, etc.
-│   │   ├── components/        # Sidebar, shared components
-│   │   ├── api.js             # Centralized API client
-│   │   └── index.css          # Design system
+│   │   ├── pages/          # Dashboard, Customers, Products, Challans, Stock…
+│   │   ├── components/     # Sidebar, ProtectedRoute
+│   │   ├── context/        # AuthContext (JWT + role permissions)
+│   │   ├── api.js          # Centralised fetch client
+│   │   └── index.css       # Design system tokens & utilities
+│   ├── vercel.json         # Vercel SPA routing config
+│   ├── Dockerfile          # Frontend container (Nginx Alpine)
 │   └── package.json
+├── docker-compose.yml      # Full-stack local Docker setup
+├── render.yaml             # Render.com blueprint for backend
+├── .github/workflows/
+│   └── deploy.yml          # GitHub Actions CI/CD pipeline
+├── SyncERP_API.postman_collection.json
 └── README.md
 ```
 
 ---
 
-## 🚀 Quick Start (Local Development)
+## 🚀 Quick Start (Local Setup)
 
 ### Prerequisites
-- Node.js 18+
-- PostgreSQL 13+ (or run the app in SQLite fallback mode)
+- **Node.js 20+** — [download](https://nodejs.org)
+- **npm 9+** (bundled with Node.js)
+- No PostgreSQL required — the app uses **SQLite** (file-based, zero setup)
 
-### 1. Clone and Install
+### Step 1 — Clone
 
 ```bash
 git clone https://github.com/your-username/SyncERP.git
 cd SyncERP
+```
 
-# Install backend
+### Step 2 — Install dependencies
+
+```bash
+# Backend
 cd backend && npm install
 
-# Install frontend
+# Frontend (separate terminal)
 cd ../frontend && npm install
 ```
 
-### 2. Configure Environment
+### Step 3 — Configure environment
 
 ```bash
 cd backend
 cp .env.example .env
-# Edit .env with your PostgreSQL credentials
+# The defaults work out of the box for local dev
+# Only change JWT_SECRET in production
 ```
 
-```env
-PORT=5001
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=your_password
-DB_NAME=syncerp
-```
+### Step 4 — Start servers
 
-### 3. Set up PostgreSQL
-
+**Terminal 1 — Backend:**
 ```bash
-# Create the database
-psql -U postgres -c "CREATE DATABASE syncerp;"
-
-# Run migrations
 cd backend
-npm run db:migrate
-
-# Seed sample data
-npm run db:seed
+node server.js
+# ✅ Server starts at http://localhost:5001
+# ✅ SQLite DB auto-created and seeded on first run
 ```
 
-### 4. Start Servers
-
+**Terminal 2 — Frontend:**
 ```bash
-# Terminal 1 — Backend
-cd backend && npm run dev
-
-# Terminal 2 — Frontend
-cd frontend && npm run dev
-```
-
-App runs at **http://localhost:3000**  
-API runs at **http://localhost:5001**
-
----
-
-## 🛠️ Tech Stack
-
-| Layer      | Technology                         |
-|------------|------------------------------------|
-| Backend    | Node.js · TypeScript · Express.js  |
-| Database   | PostgreSQL (AWS RDS in production) |
-| Validation | Zod                                |
-| Frontend   | React 18 · Vite                    |
-| Styling    | Vanilla CSS (custom design system) |
-| Charts     | Recharts                           |
-
----
-
-## 📡 API Reference
-
-All endpoints are prefixed with `/api`.
-
-### Dashboard
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/dashboard` | KPIs, charts, recent invoices |
-
-### Customers
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/customers` | List all (supports `?search=`, `?status=`) |
-| GET | `/api/customers/:id` | Customer detail with invoices & follow-ups |
-| POST | `/api/customers` | Create customer |
-| PUT | `/api/customers/:id` | Update customer |
-| DELETE | `/api/customers/:id` | Deactivate customer |
-
-### Products
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/products` | List all (supports `?search=`, `?low_stock=true`) |
-| POST | `/api/products` | Create product |
-| PUT | `/api/products/:id` | Update product |
-| DELETE | `/api/products/:id` | Delete product |
-
-### Purchase Orders
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/purchase-orders` | All POs |
-| GET | `/api/purchase-orders/:id` | PO detail with items |
-| POST | `/api/purchase-orders` | Create PO (stock updates on `received`) |
-| PUT | `/api/purchase-orders/:id/status` | Update status |
-
-### Challans
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/challans` | All challans |
-| GET | `/api/challans/:id` | Challan with items |
-| POST | `/api/challans` | Create challan |
-| PUT | `/api/challans/:id/status` | Update status (stock deducted on `dispatched`) |
-
-### Invoices
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/invoices` | All invoices |
-| GET | `/api/invoices/:id` | Invoice with GST breakdown |
-| POST | `/api/invoices` | Create invoice |
-| PUT | `/api/invoices/:id/payment` | Record payment |
-
-### CRM Follow-ups
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/crm` | All follow-ups |
-| POST | `/api/crm` | Create follow-up |
-| PUT | `/api/crm/:id` | Update |
-| DELETE | `/api/crm/:id` | Delete |
-
-### Stock
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/stock` | Inventory levels + movement log |
-
----
-
-## ☁️ AWS Deployment
-
-### Architecture
-
-```
-Internet → Route 53 → ALB → EC2 (Node.js) → RDS PostgreSQL
-                      ↓
-                   S3 + CloudFront (React build)
-```
-
-### Step 1 — RDS PostgreSQL Setup
-
-1. Open **AWS RDS → Create Database**
-2. Engine: **PostgreSQL 15**
-3. Template: **Free Tier** (or Production)
-4. DB identifier: `syncerp-db`
-5. Credentials: set a strong password
-6. VPC Security Group: allow inbound 5432 from EC2 security group
-
-```bash
-# After RDS is ready, update .env on EC2:
-DB_HOST=your-endpoint.rds.amazonaws.com
-DB_SSL=true
-```
-
-### Step 2 — EC2 Server Setup
-
-```bash
-# Connect to EC2 (Ubuntu 22.04 recommended)
-ssh -i your-key.pem ubuntu@your-ec2-ip
-
-# Install Node.js 20
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-# Install PM2
-sudo npm install -g pm2
-
-# Clone and setup
-git clone https://github.com/your-username/SyncERP.git
-cd SyncERP/backend
-npm install
-cp .env.example .env
-# Edit .env with RDS credentials
-
-# Run migrations
-npm run db:migrate
-npm run db:seed
-
-# Build TypeScript
-npm run build
-
-# Start with PM2
-pm2 start dist/server.js --name syncerp-api
-pm2 startup
-pm2 save
-```
-
-### Step 3 — Frontend (S3 + CloudFront)
-
-```bash
-# Build frontend
 cd frontend
-npm run build
-
-# Create S3 bucket (replace with your domain)
-aws s3 mb s3://syncerp-frontend
-
-# Upload build
-aws s3 sync dist/ s3://syncerp-frontend --delete
-
-# Enable static website hosting
-aws s3 website s3://syncerp-frontend \
-  --index-document index.html \
-  --error-document index.html
+npm run dev
+# ✅ App opens at http://localhost:3000
 ```
 
-Then create a **CloudFront distribution** pointing to the S3 bucket for HTTPS + CDN.
+### Step 5 — Login
 
-### Step 4 — Nginx Reverse Proxy (EC2)
+Open **http://localhost:3000** and login with any demo credential below.
 
-```nginx
-# /etc/nginx/sites-available/syncerp
-server {
-    listen 80;
-    server_name api.your-domain.com;
-
-    location / {
-        proxy_pass http://localhost:5001;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-```
-
-```bash
-sudo nginx -t && sudo systemctl reload nginx
-# Use certbot for HTTPS: sudo certbot --nginx
-```
+> **Note:** The SQLite database (`backend/syncerp.db`) is auto-created and seeded with sample data on the **very first run**. No separate migration step needed.
 
 ---
 
 ## 🔐 Environment Variables
 
+All environment variables live in `backend/.env`. Copy `backend/.env.example` to get started.
+
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `PORT` | API server port | `5001` |
-| `NODE_ENV` | Environment | `development` |
-| `DB_HOST` | PostgreSQL host | `localhost` |
-| `DB_PORT` | PostgreSQL port | `5432` |
-| `DB_USER` | PostgreSQL user | `postgres` |
-| `DB_PASSWORD` | PostgreSQL password | — |
-| `DB_NAME` | Database name | `syncerp` |
-| `DB_SSL` | Enable SSL (for RDS) | `false` |
-| `CORS_ORIGIN` | Allowed frontend origin | `*` |
+| `NODE_ENV` | `development` or `production` | `development` |
+| `JWT_SECRET` | Secret for signing JWT tokens — **change in production** | *(insecure default)* |
+| `JWT_EXPIRES` | JWT expiry duration | `8h` |
+| `CORS_ORIGIN` | Allowed frontend URL(s) | `http://localhost:3000` |
+| `DB_PATH` | Path to SQLite file | `<backend_dir>/syncerp.db` |
+
+### How secrets are managed
+- **Local dev**: `.env` file (git-ignored)
+- **Docker**: `environment:` block in `docker-compose.yml` / Docker secrets
+- **Render**: Dashboard → Environment Variables (UI)
+- **GitHub Actions**: Settings → Secrets → Actions (encrypted)
 
 ---
 
-## 📋 Git Workflow
+## 📡 API Reference
+
+All endpoints require `Authorization: Bearer <token>` except `/health` and `/api/auth/login`.
+
+### Authentication
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `POST` | `/api/auth/login` | ❌ Public | Login — returns JWT token |
+| `GET` | `/api/auth/me` | ✅ Any | Current user profile |
+| `GET` | `/health` | ❌ Public | Health check |
+
+### Dashboard
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/dashboard` | KPIs, charts, top products, recent invoices |
+
+### Customers
+| Method | Endpoint | Params | Description |
+|--------|----------|--------|-------------|
+| `GET` | `/api/customers` | `?search=&status=&customer_type=` | List with search |
+| `GET` | `/api/customers/:id` | — | Detail + invoices + follow-ups |
+| `POST` | `/api/customers` | body | Create customer |
+| `PUT` | `/api/customers/:id` | body | Update customer |
+| `DELETE` | `/api/customers/:id` | — | Deactivate (admin only) |
+| `POST` | `/api/customers/:id/followups` | body | Add CRM follow-up |
+
+### Products & Inventory
+| Method | Endpoint | Params | Description |
+|--------|----------|--------|-------------|
+| `GET` | `/api/products` | `?search=&category=&low_stock=true` | List with filters |
+| `POST` | `/api/products` | body | Create product (warehouse role) |
+| `PUT` | `/api/products/:id` | body | Update product (warehouse role) |
+| `DELETE` | `/api/products/:id` | — | Delete (admin only) |
+| `GET` | `/api/stock` | `?search=&low_stock=true` | Inventory + recent movements |
+| `GET` | `/api/stock/movements` | `?type=IN\|OUT&product_id=&page=&limit=` | Paginated movement log |
+
+### Sales Challans
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/challans` | `?status=Draft\|Confirmed\|Cancelled&customer_id=` |
+| `GET` | `/api/challans/:id` | Challan with product snapshot items |
+| `POST` | `/api/challans` | Create challan — `status: Draft` or `Confirmed` |
+| `PUT` | `/api/challans/:id/status` | Update status — stock deducted/restored |
+
+**POST /api/challans request body:**
+```json
+{
+  "customer_id": 1,
+  "delivery_address": "12, Industrial Area, Delhi",
+  "notes": "Handle with care",
+  "status": "Draft",
+  "items": [
+    { "product_id": 1, "qty": 50, "unit_price": 12, "discount": 5 }
+  ]
+}
+```
+
+**Insufficient stock error (HTTP 400):**
+```json
+{
+  "error": "Insufficient stock for \"Steel Pipe 2inch\" (SKU: SKU-002). Available: 20, Required: 100"
+}
+```
+
+### Invoices
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/invoices` | `?status=unpaid\|partial\|paid&customer_id=` |
+| `GET` | `/api/invoices/:id` | Invoice with GST breakdown |
+| `POST` | `/api/invoices` | Create invoice |
+| `PUT` | `/api/invoices/:id/payment` | Record partial/full payment |
+
+### Other
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET/POST/PUT/DELETE` | `/api/crm` | CRM follow-ups |
+| `GET/POST/PUT` | `/api/suppliers` | Supplier management |
+| `GET/POST` | `/api/purchase-orders` | Purchase orders |
+| `PUT` | `/api/purchase-orders/:id/status` | Receive PO (adds stock) |
+
+---
+
+## ☁️ Deployment
+
+### Option A: Docker (Recommended)
+
+Best for self-hosted VMs (any cloud provider).
 
 ```bash
-# Initial commit
-git init
-git add .
-git commit -m "feat: initial SyncERP ERP/CRM system"
+# 1. Copy and edit environment file
+cp backend/.env.example backend/.env
+# Edit JWT_SECRET and CORS_ORIGIN
 
-# Feature branches
-git checkout -b feat/invoice-pdf-export
-git checkout -b fix/stock-calculation-bug
+# 2. Build and run
+docker compose up --build -d
 
-# Commit conventions
-git commit -m "feat(invoices): add PDF export"
-git commit -m "fix(stock): correct qty deduction on dispatch"
-git commit -m "docs: update deployment guide"
+# App:  http://localhost:3000
+# API:  http://localhost:5001
+# Data: persisted in Docker volume "syncerp-data"
+```
+
+**Stop / restart:**
+```bash
+docker compose down          # stop (data preserved)
+docker compose down -v       # stop + delete data (fresh start)
+docker compose restart       # restart containers
 ```
 
 ---
 
-## 🧩 Modules
+### Option B: Vercel + Render (Free Cloud)
 
-| Module | Status | Features |
-|--------|--------|----------|
-| Dashboard | ✅ | KPIs, revenue chart, top products |
-| Customers | ✅ | CRUD, search, detail view with invoice history |
-| Products | ✅ | CRUD, stock alerts, low-stock filter |
-| Suppliers | ✅ | CRUD |
-| Purchase Orders | ✅ | Multi-item POs, auto stock update on receipt |
-| Sales Challans | ✅ | Multi-item, dispatch workflow, stock deduction |
-| Invoices | ✅ | GST breakdown, payment recording, status tracking |
-| CRM Follow-ups | ✅ | Call/email/visit tracking, mark-done workflow |
-| Stock | ✅ | Live inventory, progress bars, movement log |
+#### Backend → Render
+
+1. Push this repo to GitHub
+2. Go to **[render.com](https://render.com)** → New → **Blueprint**
+3. Connect your GitHub repo — Render auto-detects `render.yaml`
+4. Click **Apply** — Render creates the web service + persistent disk automatically
+5. Copy your Render URL (e.g. `https://syncerp-api.onrender.com`)
+
+**After deploy, set these env vars in Render Dashboard → Environment:**
+
+| Variable | Value |
+|----------|-------|
+| `JWT_SECRET` | Any long random string |
+| `CORS_ORIGIN` | Your Vercel frontend URL (set after step below) |
+
+#### Frontend → Vercel
+
+```bash
+# Install Vercel CLI
+npm install -g vercel
+
+# Deploy from the frontend directory
+cd frontend
+vercel deploy --prod
+```
+
+Or connect via **[vercel.com](https://vercel.com)** → Import Git Repository → set **Root Directory** to `frontend`.
+
+**Vercel Environment Variables** (Dashboard → Settings → Environment Variables):
+
+| Variable | Value |
+|----------|-------|
+| `VITE_API_URL` | Your Render backend URL e.g. `https://syncerp-api.onrender.com` |
+
+**Final step:** Go back to Render → update `CORS_ORIGIN` to your Vercel URL, then redeploy.
+
+---
+
+### Option C: Railway
+
+Railway natively supports SQLite with persistent volumes.
+
+```bash
+# Install Railway CLI
+npm install -g @railway/cli
+
+# Login and create project
+railway login
+railway init
+
+# Deploy backend
+cd backend
+railway up
+
+# Set environment variables
+railway variables set JWT_SECRET=your_secret_here
+railway variables set CORS_ORIGIN=https://your-frontend.vercel.app
+railway variables set DB_PATH=/data/syncerp.db
+
+# Add a volume for SQLite persistence in Railway Dashboard
+# Mount path: /data
+```
+
+---
+
+## 🔄 GitHub Actions CI/CD
+
+The pipeline in `.github/workflows/deploy.yml` runs on every push to `main`:
+
+1. **Validate** — installs deps, runs frontend build (catches JSX errors)
+2. **Deploy Backend** — triggers Render re-deploy via deploy hook
+3. **Deploy Frontend** — deploys to Vercel using Vercel CLI
+
+### Required GitHub Secrets
+
+Go to your repo → **Settings → Secrets → Actions** and add:
+
+| Secret | How to get it |
+|--------|--------------|
+| `VERCEL_TOKEN` | vercel.com → Settings → Tokens |
+| `VERCEL_ORG_ID` | `vercel whoami` → copy `id` from `~/.vercel/project.json` |
+| `VERCEL_PROJECT_ID` | Same file as above |
+| `RENDER_DEPLOY_HOOK_URL` | Render Dashboard → Service → Settings → Deploy Hooks |
+
+---
+
+## 💡 Assumptions Made
+
+1. **SQLite over PostgreSQL** — SQLite is sufficient for a demo/assignment project. It runs with zero infrastructure. For production scale, the backend can be migrated to PostgreSQL using the `pg` package (already installed as a dependency).
+
+2. **Single-file backend** — All routes are in `server.js` for simplicity. The `backend/src/` directory contains a TypeScript/PostgreSQL version for future use.
+
+3. **Role-based access** — Four fixed roles are seeded: admin, sales, warehouse, accounts. Role permissions are enforced on all API routes.
+
+4. **Challan statuses** — The flow is `Draft → Confirmed → Cancelled`. Stock is only deducted on `Confirmed` and restored on `Cancelled` (if previously Confirmed).
+
+5. **Challan number generation** — Auto-generated as `CH-{YEAR}-{NNN}` (sequential). In production, a database sequence would be safer for concurrency.
+
+6. **SQLite persistence on Render** — Render's free tier doesn't include persistent disks, but the `render.yaml` provisions a 1GB disk add-on ($0.25/GB/month). As an alternative, Railway's free tier supports volumes.
+
+7. **No email/SMS** — Notifications are UI-only. Real deployments would integrate an email service (e.g., SendGrid) for invoice delivery.
+
+---
+
+## 👥 Demo Credentials
+
+| Role | Email | Password | Access |
+|------|-------|----------|--------|
+| **Admin** | `admin@syncerp.com` | `admin123` | Full access to everything |
+| **Sales** | `sales@syncerp.com` | `sales123` | Customers, Challans, Invoices, CRM |
+| **Warehouse** | `warehouse@syncerp.com` | `warehouse123` | Products, Stock, Purchase Orders |
+| **Accounts** | `accounts@syncerp.com` | `accounts123` | Invoices, Customers |
+
+---
+
+## 🧪 Postman Collection
+
+Import `SyncERP_API.postman_collection.json` into Postman.
+
+1. Set `base_url` variable to your server (`http://localhost:5001` or your Render URL)
+2. Run **Auth → Login (Admin)** — token is auto-saved
+3. All other requests use the token automatically
+
+---
+
+## 📦 Bonus Features Implemented
+
+- [x] **Docker setup** — `backend/Dockerfile`, `frontend/Dockerfile`, `docker-compose.yml`
+- [x] **GitHub Actions** — `.github/workflows/deploy.yml` (validate + deploy)
+- [x] **Render Blueprint** — `render.yaml` (one-click deploy)
+- [x] **Postman Collection** — Full API test suite with auto-token saving
+- [ ] Export invoice as PDF *(out of scope — future enhancement)*
+- [ ] Upload product image to S3 *(out of scope — future enhancement)*
 
 ---
 

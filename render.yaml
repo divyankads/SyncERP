@@ -1,0 +1,28 @@
+services:
+  # ─── Backend API ────────────────────────────────────────────────────────────
+  - type: web
+    name: syncerp-api
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /health
+    # Use a persistent disk so SQLite data survives restarts
+    disk:
+      name: syncerp-db
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5001
+      - key: DB_PATH
+        value: /data/syncerp.db
+      - key: JWT_SECRET
+        generateValue: true       # Render auto-generates a secure value
+      - key: JWT_EXPIRES
+        value: 8h
+      - key: CORS_ORIGIN
+        # Set this after deploying the frontend — paste your Vercel URL here
+        value: https://syncerp.vercel.app

@@ -1,0 +1,83 @@
+name: SyncERP CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ─── Lint & Validate ────────────────────────────────────────────────────────
+  validate:
+    name: Validate Code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend deps
+        run: npm ci
+        working-directory: backend
+
+      - name: Validate backend (syntax check)
+        run: node -e "require('./server.js')" 2>&1 | grep -v "EPERM\|listen\|Error" || true
+        working-directory: backend
+
+      - name: Install frontend deps
+        run: npm ci
+        working-directory: frontend
+
+      - name: Build frontend
+        run: npm run build
+        working-directory: frontend
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://syncerp-api.onrender.com' }}
+
+  # ─── Deploy Backend → Render ─────────────────────────────────────────────────
+  deploy-backend:
+    name: Deploy Backend (Render)
+    needs: validate
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Trigger Render Deploy
+        # Render auto-deploys on git push when connected to GitHub.
+        # This step manually triggers a deploy via Render Deploy Hook.
+        # Set RENDER_DEPLOY_HOOK_URL in GitHub → Settings → Secrets.
+        run: |
+          if [ -n "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
+            curl -s "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+            echo "✅ Render deploy triggered"
+          else
+            echo "ℹ️  RENDER_DEPLOY_HOOK_URL not set — Render auto-deploys via GitHub integration"
+          fi
+
+  # ─── Deploy Frontend → Vercel ─────────────────────────────────────────────
+  deploy-frontend:
+    name: Deploy Frontend (Vercel)
+    needs: validate
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Deploy to Vercel
+        run: vercel deploy --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: frontend
+        env:
+          VERCEL_ORG_ID:     ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

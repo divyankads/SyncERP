@@ -1,25 +1,45 @@
-# Node
+# ─── Node.js ──────────────────────────────────────────────────────────────────
 node_modules/
-dist/
-*.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
 
-# Environment
+# ─── Build output ─────────────────────────────────────────────────────────────
+dist/
+build/
+frontend/dist/
+backend/dist/
+
+# ─── Environment (NEVER commit real secrets) ──────────────────────────────────
 .env
 .env.local
 .env.production
+.env.staging
+# .env.example is intentionally NOT ignored — it documents required vars
 
-# Database
+# ─── Database (SQLite files contain live data) ────────────────────────────────
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
+*.sqlite3
 
-# OS
+# ─── Docker ───────────────────────────────────────────────────────────────────
+# docker-compose.override.yml    # uncomment if you use local overrides
+
+# ─── OS / Editor ──────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
-
-# Editor
-.vscode/
+.vscode/settings.json
 .idea/
 
-# Build
-frontend/dist/
+# ─── TypeScript ───────────────────────────────────────────────────────────────
+*.tsbuildinfo
+
+# ─── Vercel ───────────────────────────────────────────────────────────────────
+.vercel/
+
+# ─── Temporary / test files ───────────────────────────────────────────────────
+*.tmp
+coverage/

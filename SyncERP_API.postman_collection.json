@@ -1,0 +1,510 @@
+{
+  "info": {
+    "name": "SyncERP API",
+    "description": "Complete API collection for SyncERP — Wholesale & Distribution ERP/CRM System.\n\n## Setup\n1. Set the `base_url` variable to your server (default: `http://localhost:5001`)\n2. Run **POST /api/auth/login** first — token is auto-saved to the `token` variable\n3. All other requests use `{{token}}` automatically via the collection auth\n\n## Test Credentials\n| Role | Email | Password |\n|------|-------|----------|\n| Admin | admin@syncerp.com | admin123 |\n| Sales | sales@syncerp.com | sales123 |\n| Warehouse | warehouse@syncerp.com | warehouse123 |\n| Accounts | accounts@syncerp.com | accounts123 |",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "syncerp-api-v1"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:5001", "type": "string" },
+    { "key": "token",    "value": "",                      "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login (Admin)",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "const res = pm.response.json();",
+                "if (res.token) {",
+                "  pm.collectionVariables.set('token', res.token);",
+                "  console.log('Token saved:', res.token.substring(0,20) + '...');",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@syncerp.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api","auth","login"] }
+          }
+        },
+        {
+          "name": "Login (Sales)",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": ["const res = pm.response.json(); if (res.token) pm.collectionVariables.set('token', res.token);"],
+              "type": "text/javascript"
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"sales@syncerp.com\",\n  \"password\": \"sales123\"\n}" },
+            "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api","auth","login"] }
+          }
+        },
+        {
+          "name": "Login (Warehouse)",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": ["const res = pm.response.json(); if (res.token) pm.collectionVariables.set('token', res.token);"],
+              "type": "text/javascript"
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"warehouse@syncerp.com\",\n  \"password\": \"warehouse123\"\n}" },
+            "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api","auth","login"] }
+          }
+        },
+        {
+          "name": "Get Me",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/auth/me", "host": ["{{base_url}}"], "path": ["api","auth","me"] }
+          }
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/health", "host": ["{{base_url}}"], "path": ["health"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard KPIs",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/dashboard", "host": ["{{base_url}}"], "path": ["api","dashboard"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customers",
+      "item": [
+        {
+          "name": "List Customers",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/customers", "host": ["{{base_url}}"], "path": ["api","customers"],
+              "query": [
+                { "key": "search",        "value": "",       "disabled": true },
+                { "key": "status",        "value": "Active", "disabled": true },
+                { "key": "customer_type", "value": "Retail", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Customer Detail",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/customers/1", "host": ["{{base_url}}"], "path": ["api","customers","1"] }
+          }
+        },
+        {
+          "name": "Create Customer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Customer\",\n  \"mobile_number\": \"9999900000\",\n  \"email\": \"test@example.com\",\n  \"business_name\": \"Test Enterprises\",\n  \"gstin\": \"29AABCT1332L1ZV\",\n  \"customer_type\": \"Wholesale\",\n  \"address\": \"123 Test Lane\",\n  \"city\": \"Mumbai\",\n  \"credit_limit\": 50000,\n  \"status\": \"Lead\",\n  \"notes\": \"New customer from trade fair\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/customers", "host": ["{{base_url}}"], "path": ["api","customers"] }
+          }
+        },
+        {
+          "name": "Update Customer",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Customer Updated\",\n  \"mobile_number\": \"9999900001\",\n  \"status\": \"Active\",\n  \"customer_type\": \"Wholesale\",\n  \"credit_limit\": 100000\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/customers/1", "host": ["{{base_url}}"], "path": ["api","customers","1"] }
+          }
+        },
+        {
+          "name": "Add Follow-up",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"call\",\n  \"notes\": \"Discussed bulk order requirements. Follow up next week.\",\n  \"status\": \"done\",\n  \"follow_date\": \"2026-08-01\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/customers/1/followups", "host": ["{{base_url}}"], "path": ["api","customers","1","followups"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products & Inventory",
+      "item": [
+        {
+          "name": "List Products",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/products", "host": ["{{base_url}}"], "path": ["api","products"],
+              "query": [
+                { "key": "search",    "value": "",     "disabled": true },
+                { "key": "category",  "value": "",     "disabled": true },
+                { "key": "low_stock", "value": "true", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Products (Low Stock)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/products?low_stock=true", "host": ["{{base_url}}"], "path": ["api","products"], "query": [{ "key": "low_stock", "value": "true" }] }
+          }
+        },
+        {
+          "name": "List Products (By Category)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/products?category=Hardware", "host": ["{{base_url}}"], "path": ["api","products"], "query": [{ "key": "category", "value": "Hardware" }] }
+          }
+        },
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"SKU-NEW-001\",\n  \"name\": \"Test Bearing 6305\",\n  \"category\": \"Mechanical\",\n  \"unit\": \"pcs\",\n  \"purchase_price\": 350,\n  \"sale_price\": 680,\n  \"tax_rate\": 18,\n  \"stock_qty\": 100,\n  \"min_stock\": 15,\n  \"location\": \"Warehouse A\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/products", "host": ["{{base_url}}"], "path": ["api","products"] }
+          }
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"SKU-001\",\n  \"name\": \"Industrial Bolt M10 (Updated)\",\n  \"category\": \"Hardware\",\n  \"unit\": \"pcs\",\n  \"purchase_price\": 6,\n  \"sale_price\": 14,\n  \"tax_rate\": 18,\n  \"stock_qty\": 500,\n  \"min_stock\": 50,\n  \"location\": \"Warehouse A\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/products/1", "host": ["{{base_url}}"], "path": ["api","products","1"] }
+          }
+        },
+        {
+          "name": "Delete Product (Admin only)",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{base_url}}/api/products/99", "host": ["{{base_url}}"], "path": ["api","products","99"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Stock",
+      "item": [
+        {
+          "name": "Get Stock Overview",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/stock", "host": ["{{base_url}}"], "path": ["api","stock"],
+              "query": [
+                { "key": "search",    "value": "", "disabled": true },
+                { "key": "low_stock", "value": "true", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Movement Log (Paginated)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/stock/movements?page=1&limit=20", "host": ["{{base_url}}"], "path": ["api","stock","movements"],
+              "query": [
+                { "key": "page",       "value": "1"  },
+                { "key": "limit",      "value": "20" },
+                { "key": "type",       "value": "OUT", "disabled": true },
+                { "key": "product_id", "value": "1",   "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Movement Log (IN only)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/stock/movements?type=IN", "host": ["{{base_url}}"], "path": ["api","stock","movements"], "query": [{ "key": "type", "value": "IN" }] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sales Challans",
+      "item": [
+        {
+          "name": "List Challans",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/challans", "host": ["{{base_url}}"], "path": ["api","challans"],
+              "query": [
+                { "key": "status",      "value": "Draft",  "disabled": true },
+                { "key": "customer_id", "value": "1",       "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Challans (Confirmed)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/challans?status=Confirmed", "host": ["{{base_url}}"], "path": ["api","challans"], "query": [{ "key": "status", "value": "Confirmed" }] }
+          }
+        },
+        {
+          "name": "Get Challan Detail",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/challans/1", "host": ["{{base_url}}"], "path": ["api","challans","1"] }
+          }
+        },
+        {
+          "name": "Create Challan (Draft)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": 1,\n  \"delivery_address\": \"12, Industrial Area, Delhi\",\n  \"notes\": \"Handle with care\",\n  \"status\": \"Draft\",\n  \"items\": [\n    {\n      \"product_id\": 1,\n      \"qty\": 50,\n      \"unit_price\": 12,\n      \"discount\": 5\n    },\n    {\n      \"product_id\": 2,\n      \"qty\": 10,\n      \"unit_price\": 350,\n      \"discount\": 0\n    }\n  ]\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/challans", "host": ["{{base_url}}"], "path": ["api","challans"] }
+          }
+        },
+        {
+          "name": "Create Challan (Confirmed — deducts stock)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": 2,\n  \"delivery_address\": \"45, MG Road, Mumbai\",\n  \"notes\": \"\",\n  \"status\": \"Confirmed\",\n  \"items\": [\n    {\n      \"product_id\": 3,\n      \"qty\": 20,\n      \"unit_price\": 55,\n      \"discount\": 10\n    }\n  ]\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/challans", "host": ["{{base_url}}"], "path": ["api","challans"] }
+          }
+        },
+        {
+          "name": "Create Challan (Insufficient Stock — expect 400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": 1,\n  \"status\": \"Confirmed\",\n  \"items\": [\n    {\n      \"product_id\": 1,\n      \"qty\": 999999,\n      \"unit_price\": 12,\n      \"discount\": 0\n    }\n  ]\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/challans", "host": ["{{base_url}}"], "path": ["api","challans"] }
+          }
+        },
+        {
+          "name": "Confirm Draft Challan",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"Confirmed\"\n}" },
+            "url": { "raw": "{{base_url}}/api/challans/1/status", "host": ["{{base_url}}"], "path": ["api","challans","1","status"] }
+          }
+        },
+        {
+          "name": "Cancel Challan (reverts stock if Confirmed)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"Cancelled\"\n}" },
+            "url": { "raw": "{{base_url}}/api/challans/1/status", "host": ["{{base_url}}"], "path": ["api","challans","1","status"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Suppliers",
+      "item": [
+        {
+          "name": "List Suppliers",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/suppliers", "host": ["{{base_url}}"], "path": ["api","suppliers"] }
+          }
+        },
+        {
+          "name": "Create Supplier",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Global Imports Pvt Ltd\",\n  \"email\": \"info@globalimports.com\",\n  \"phone\": \"9811000001\",\n  \"address\": \"Plot 45, MIDC, Pune\",\n  \"gstin\": \"27AABCG1234Z1ZX\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/suppliers", "host": ["{{base_url}}"], "path": ["api","suppliers"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Purchase Orders",
+      "item": [
+        {
+          "name": "List Purchase Orders",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/purchase-orders", "host": ["{{base_url}}"], "path": ["api","purchase-orders"] }
+          }
+        },
+        {
+          "name": "Get PO Detail",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/purchase-orders/1", "host": ["{{base_url}}"], "path": ["api","purchase-orders","1"] }
+          }
+        },
+        {
+          "name": "Create Purchase Order",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supplier_id\": 1,\n  \"expected_date\": \"2026-08-15\",\n  \"notes\": \"Urgent order for Q3\",\n  \"items\": [\n    { \"product_id\": 1, \"qty\": 500, \"unit_price\": 5 },\n    { \"product_id\": 5, \"qty\": 50,  \"unit_price\": 120 }\n  ]\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/purchase-orders", "host": ["{{base_url}}"], "path": ["api","purchase-orders"] }
+          }
+        },
+        {
+          "name": "Mark PO as Received (adds stock)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"received\"\n}" },
+            "url": { "raw": "{{base_url}}/api/purchase-orders/1/status", "host": ["{{base_url}}"], "path": ["api","purchase-orders","1","status"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Invoices",
+      "item": [
+        {
+          "name": "List Invoices",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/invoices", "host": ["{{base_url}}"], "path": ["api","invoices"],
+              "query": [
+                { "key": "status",      "value": "unpaid", "disabled": true },
+                { "key": "customer_id", "value": "1",      "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Invoice Detail",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/invoices/1", "host": ["{{base_url}}"], "path": ["api","invoices","1"] }
+          }
+        },
+        {
+          "name": "Create Invoice",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"challan_id\": 1,\n  \"customer_id\": 1,\n  \"due_date\": \"2026-08-31\",\n  \"discount_amount\": 500,\n  \"notes\": \"Payment due by end of month\",\n  \"items\": [\n    { \"total\": 2280, \"tax_rate\": 18 },\n    { \"total\": 17500, \"tax_rate\": 18 }\n  ]\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/invoices", "host": ["{{base_url}}"], "path": ["api","invoices"] }
+          }
+        },
+        {
+          "name": "Record Payment",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": 10000\n}" },
+            "url": { "raw": "{{base_url}}/api/invoices/1/payment", "host": ["{{base_url}}"], "path": ["api","invoices","1","payment"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "CRM Follow-ups",
+      "item": [
+        {
+          "name": "List Follow-ups",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/crm", "host": ["{{base_url}}"], "path": ["api","crm"],
+              "query": [
+                { "key": "status", "value": "pending", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Follow-up",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": 1,\n  \"type\": \"call\",\n  \"notes\": \"Discussed Q3 bulk order. Customer needs 200 units of SKU-001.\",\n  \"status\": \"pending\",\n  \"follow_date\": \"2026-08-05\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/crm", "host": ["{{base_url}}"], "path": ["api","crm"] }
+          }
+        },
+        {
+          "name": "Update Follow-up (Mark Done)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"call\",\n  \"notes\": \"Order confirmed. Challan to be raised.\",\n  \"status\": \"done\",\n  \"follow_date\": \"2026-08-05\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/crm/1", "host": ["{{base_url}}"], "path": ["api","crm","1"] }
+          }
+        },
+        {
+          "name": "Delete Follow-up",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{base_url}}/api/crm/1", "host": ["{{base_url}}"], "path": ["api","crm","1"] }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+version: '3.9'
+
+services:
+  # ─── Backend API ────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: syncerp-api
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    volumes:
+      # Persist SQLite database outside the container
+      - syncerp-data:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=5001
+      - JWT_SECRET=${JWT_SECRET:-syncerp_dev_secret_change_in_production}
+      - JWT_EXPIRES=${JWT_EXPIRES:-8h}
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3000}
+      - DB_PATH=/app/data/syncerp.db
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - syncerp-net
+
+  # ─── Frontend ───────────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${VITE_API_URL:-http://localhost:5001}
+    container_name: syncerp-ui
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - syncerp-net
+
+# ─── Volumes ────────────────────────────────────────────────────────────────
+volumes:
+  syncerp-data:
+    driver: local
+
+# ─── Network ────────────────────────────────────────────────────────────────
+networks:
+  syncerp-net:
+    driver: bridge
