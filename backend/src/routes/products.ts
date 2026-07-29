@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import pool from '../db/pool';
+import { ProductModel } from '../db/mongo';
 import { validate, asyncHandler } from '../middleware/validate';
 import { ProductSchema } from '../types/schemas';
 
@@ -7,46 +7,80 @@ const router = Router();
 
 router.get('/', asyncHandler(async (req, res) => {
   const { search, category, low_stock } = req.query as Record<string, string>;
-  let q = 'SELECT * FROM products WHERE 1=1';
-  const params: any[] = [];
+  const filter: any = {};
 
   if (search) {
-    params.push(`%${search}%`);
-    q += ` AND (name ILIKE $${params.length} OR sku ILIKE $${params.length})`;
+    filter.$or = [
+      { name: { $regex: search, $options: 'i' } },
+      { sku: { $regex: search, $options: 'i' } },
+    ];
   }
   if (category) {
-    params.push(category);
-    q += ` AND category = $${params.length}`;
+    filter.category = category;
   }
   if (low_stock === 'true') {
-    q += ' AND stock_qty <= min_stock';
+    filter.$expr = { $lte: ['$stockQty', '$minStock'] };
   }
-  q += ' ORDER BY name';
 
-  const { rows } = await pool.query(q, params);
+  const docs = await ProductModel.find(filter).sort({ name: 1 }).lean();
+  const rows = docs.map((d: any) => ({
+    id: d._id.toString(),
+    ...d,
+    purchase_price: d.purchasePrice ?? d.purchase_price ?? 0,
+    sale_price: d.salePrice ?? d.sale_price ?? 0,
+    tax_rate: d.taxRate ?? d.tax_rate ?? 18,
+    stock_qty: d.stockQty ?? d.stock_qty ?? 0,
+    min_stock: d.minStock ?? d.min_stock ?? 10,
+  }));
   res.json(rows);
 }));
 
 router.post('/', validate(ProductSchema), asyncHandler(async (req, res) => {
-  const { sku, name, category, unit, purchase_price, sale_price, tax_rate, stock_qty, min_stock } = req.body;
-  const { rows } = await pool.query(
-    'INSERT INTO products (sku,name,category,unit,purchase_price,sale_price,tax_rate,stock_qty,min_stock) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id',
-    [sku, name, category, unit, purchase_price, sale_price, tax_rate, stock_qty, min_stock]
-  );
-  res.status(201).json({ id: rows[0].id, message: 'Product created' });
+  const { sku, name, category, unit, purchase_price, sale_price, tax_rate, stock_qty, min_stock, location } = req.body;
+  const newDoc = await ProductModel.create({
+    sku,
+    name,
+    category,
+    unit: unit || 'pcs',
+    purchasePrice: purchase_price || 0,
+    purchase_price: purchase_price || 0,
+    salePrice: sale_price || 0,
+    sale_price: sale_price || 0,
+    taxRate: tax_rate || 18,
+    tax_rate: tax_rate || 18,
+    stockQty: stock_qty || 0,
+    stock_qty: stock_qty || 0,
+    minStock: min_stock || 10,
+    min_stock: min_stock || 10,
+    location: location || 'Warehouse A',
+  });
+  res.status(201).json({ id: newDoc._id.toString(), message: 'Product created' });
 }));
 
 router.put('/:id', validate(ProductSchema), asyncHandler(async (req, res) => {
-  const { sku, name, category, unit, purchase_price, sale_price, tax_rate, stock_qty, min_stock } = req.body;
-  await pool.query(
-    'UPDATE products SET sku=$1,name=$2,category=$3,unit=$4,purchase_price=$5,sale_price=$6,tax_rate=$7,stock_qty=$8,min_stock=$9 WHERE id=$10',
-    [sku, name, category, unit, purchase_price, sale_price, tax_rate, stock_qty, min_stock, req.params.id]
-  );
+  const { sku, name, category, unit, purchase_price, sale_price, tax_rate, stock_qty, min_stock, location } = req.body;
+  await ProductModel.findByIdAndUpdate(req.params.id, {
+    sku,
+    name,
+    category,
+    unit,
+    purchasePrice: purchase_price,
+    purchase_price,
+    salePrice: sale_price,
+    sale_price,
+    taxRate: tax_rate,
+    tax_rate,
+    stockQty: stock_qty,
+    stock_qty,
+    minStock: min_stock,
+    min_stock,
+    location,
+  });
   res.json({ message: 'Product updated' });
 }));
 
 router.delete('/:id', asyncHandler(async (req, res) => {
-  await pool.query('DELETE FROM products WHERE id=$1', [req.params.id]);
+  await ProductModel.findByIdAndDelete(req.params.id);
   res.json({ message: 'Product deleted' });
 }));
 

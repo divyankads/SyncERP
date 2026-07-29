@@ -24,13 +24,13 @@ export function errorHandler(
   res: Response,
   _next: NextFunction
 ): void {
-  if (err && err.message) {
-    console.error('❌ Request Error:', err.message);
+  if (err) {
+    console.error('❌ Request Error:', err.message || err, err.stack);
   }
   const status = (err as any).status || 500;
   res.status(status).json({
     success: false,
-    error: process.env.NODE_ENV === 'production' ? 'Internal server error' : (err.message || 'Server error'),
+    error: err.message || 'Server error',
   });
 }
 

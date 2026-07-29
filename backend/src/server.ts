@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import pool from './db/pool';
 import { errorHandler } from './middleware/validate';
 
 import dashboardRouter      from './routes/dashboard';
@@ -16,6 +15,7 @@ import stockRouter          from './routes/stock';
 import authRouter           from './routes/auth';
 
 import connectMongoDB from './db/mongo';
+import { seedMongoDB } from './db/seed-mongo';
 
 dotenv.config();
 
@@ -28,7 +28,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', database: 'MongoDB', timestamp: new Date().toISOString() });
 });
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
@@ -51,27 +51,19 @@ app.use((_req, res) => {
 // ─── Global Error Handler ─────────────────────────────────────────────────────
 app.use(errorHandler);
 
-// ─── Start ────────────────────────────────────────────────────────────────────
+// ─── Start Server ─────────────────────────────────────────────────────────────
 const PORT = Number(process.env.PORT) || 5001;
 
 async function start(): Promise<void> {
-  // Connect to MongoDB Atlas
   try {
-    if (process.env.MONGODB_URI) {
-      await connectMongoDB();
-    }
+    await connectMongoDB();
+    await seedMongoDB();
+    console.log('✅ MongoDB Atlas connected and active');
   } catch (err) {
-    console.error('⚠️ MongoDB connection warning:', err instanceof Error ? err.message : err);
+    console.error('⚠️ MongoDB connection/seed warning:', err instanceof Error ? err.message : err);
   }
 
-  try {
-    await pool.query('SELECT 1'); // verify Postgres connection
-    console.log('✅ PostgreSQL connected');
-  } catch (err) {
-    console.log('💡 PostgreSQL not connected, running with active database drivers.');
-  }
-
-  app.listen(PORT, () => console.log(`🚀 SyncERP API running on http://localhost:${PORT}`));
+  app.listen(PORT, () => console.log(`🚀 SyncERP API (MongoDB Native) running on port ${PORT}`));
 }
 
 start();

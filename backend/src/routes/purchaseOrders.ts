@@ -1,93 +1,124 @@
 import { Router } from 'express';
-import pool from '../db/pool';
+import { PurchaseOrderModel, SupplierModel, ProductModel, StockMovementModel } from '../db/mongo';
 import { validate, asyncHandler } from '../middleware/validate';
 import { PurchaseOrderSchema, StatusSchema } from '../types/schemas';
 
 const router = Router();
 
 router.get('/', asyncHandler(async (_req, res) => {
-  const { rows } = await pool.query(`
-    SELECT po.*, s.name as supplier_name
-    FROM purchase_orders po JOIN suppliers s ON po.supplier_id = s.id
-    ORDER BY po.created_at DESC
-  `);
+  const docs = await PurchaseOrderModel.find().sort({ createdAt: -1 }).lean();
+  const rows = docs.map((d: any) => ({
+    id: d._id.toString(),
+    ...d,
+    po_number: d.poNumber || d.po_number,
+    supplier_name: d.supplierName || d.supplier_name || 'Supplier',
+    total_amount: d.totalAmount ?? d.total_amount ?? 0,
+    expected_date: d.expectedDate || d.expected_date,
+    created_at: d.createdAt || d.created_at,
+  }));
   res.json(rows);
 }));
 
 router.get('/:id', asyncHandler(async (req, res) => {
-  const { rows } = await pool.query(`
-    SELECT po.*, s.name as supplier_name
-    FROM purchase_orders po JOIN suppliers s ON po.supplier_id = s.id
-    WHERE po.id = $1
-  `, [req.params.id]);
-  if (!rows[0]) { res.status(404).json({ error: 'Not found' }); return; }
+  const doc = await PurchaseOrderModel.findById(req.params.id).lean();
+  if (!doc) { res.status(404).json({ error: 'Not found' }); return; }
 
-  const items = await pool.query(`
-    SELECT pi.*, p.name as product_name, p.sku, p.unit
-    FROM po_items pi JOIN products p ON pi.product_id = p.id
-    WHERE pi.po_id = $1
-  `, [req.params.id]);
-  res.json({ ...rows[0], items: items.rows });
+  const formattedItems = (doc.items || []).map((i: any) => ({
+    ...i,
+    product_name: i.productName || i.product_name,
+    unit_price: i.unitPrice ?? i.unit_price ?? 0,
+  }));
+
+  res.json({
+    id: (doc as any)._id.toString(),
+    ...doc,
+    po_number: (doc as any).poNumber || (doc as any).po_number,
+    supplier_name: (doc as any).supplierName || (doc as any).supplier_name || 'Supplier',
+    items: formattedItems,
+  });
 }));
 
 router.post('/', validate(PurchaseOrderSchema), asyncHandler(async (req, res) => {
   const { supplier_id, expected_date, notes, items } = req.body;
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
+  const supplier = await SupplierModel.findById(supplier_id).lean();
 
-    const countRes = await client.query('SELECT COUNT(*) as c FROM purchase_orders');
-    const year = new Date().getFullYear();
-    const po_number = `PO-${year}-${String(Number(countRes.rows[0].c) + 1).padStart(3, '0')}`;
-    const total = items.reduce((s: number, i: any) => s + i.qty * i.unit_price, 0);
+  const count = await PurchaseOrderModel.countDocuments();
+  const year = new Date().getFullYear();
+  const po_number = `PO-${year}-${String(count + 1).padStart(3, '0')}`;
 
-    const poRes = await client.query(
-      'INSERT INTO purchase_orders (po_number,supplier_id,expected_date,total_amount,notes) VALUES ($1,$2,$3,$4,$5) RETURNING id',
-      [po_number, supplier_id, expected_date || null, total, notes || null]
-    );
-    const poId = poRes.rows[0].id;
+  const formattedItems = [];
+  let total = 0;
 
-    for (const item of items) {
-      await client.query(
-        'INSERT INTO po_items (po_id,product_id,qty,unit_price) VALUES ($1,$2,$3,$4)',
-        [poId, item.product_id, item.qty, item.unit_price]
-      );
-    }
-    await client.query('COMMIT');
-    res.status(201).json({ id: poId, po_number, message: 'Purchase order created' });
-  } catch (err) {
-    await client.query('ROLLBACK');
-    throw err;
-  } finally {
-    client.release();
+  for (const item of items) {
+    const p = await ProductModel.findById(item.product_id).lean();
+    const itemTotal = item.qty * item.unit_price;
+    total += itemTotal;
+    formattedItems.push({
+      productId: item.product_id,
+      product_id: item.product_id,
+      productName: p ? p.name : 'Product',
+      product_name: p ? p.name : 'Product',
+      sku: p ? p.sku : '',
+      unit: p ? p.unit : 'pcs',
+      qty: item.qty,
+      unitPrice: item.unit_price,
+      unit_price: item.unit_price,
+      total: itemTotal,
+    });
   }
+
+  const newDoc = await PurchaseOrderModel.create({
+    poNumber: po_number,
+    po_number,
+    supplierId: supplier_id,
+    supplier_id,
+    supplierName: supplier ? supplier.name : 'Supplier',
+    supplier_name: supplier ? supplier.name : 'Supplier',
+    status: 'draft',
+    expectedDate: expected_date ? new Date(expected_date) : null,
+    expected_date: expected_date ? new Date(expected_date) : null,
+    totalAmount: total,
+    total_amount: total,
+    notes,
+    items: formattedItems,
+  });
+
+  res.status(201).json({ id: newDoc._id.toString(), po_number, message: 'Purchase order created' });
 }));
 
 router.put('/:id/status', validate(StatusSchema), asyncHandler(async (req, res) => {
   const { status } = req.body;
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    await client.query('UPDATE purchase_orders SET status=$1 WHERE id=$2', [status, req.params.id]);
+  const po = await PurchaseOrderModel.findById(req.params.id);
+  if (!po) { res.status(404).json({ error: 'Purchase order not found' }); return; }
 
-    if (status === 'received') {
-      const items = await client.query('SELECT * FROM po_items WHERE po_id=$1', [req.params.id]);
-      for (const item of items.rows) {
-        await client.query('UPDATE products SET stock_qty = stock_qty + $1 WHERE id=$2', [item.qty, item.product_id]);
-        await client.query(
-          "INSERT INTO stock_movements (product_id,type,qty,ref_type,ref_id,notes) VALUES ($1,'purchase',$2,'purchase_order',$3,'PO received')",
-          [item.product_id, item.qty, req.params.id]
-        );
+  po.status = status;
+  await po.save();
+
+  if (status === 'received') {
+    for (const item of po.items) {
+      if (item.productId || item.product_id) {
+        const pid = item.productId || item.product_id;
+        await ProductModel.findByIdAndUpdate(pid, {
+          $inc: { stockQty: item.qty, stock_qty: item.qty }
+        });
+        await StockMovementModel.create({
+          productId: pid,
+          product_id: pid,
+          productName: item.productName || item.product_name,
+          sku: item.sku,
+          type: 'purchase',
+          qty: item.qty,
+          refType: 'purchase_order',
+          ref_type: 'purchase_order',
+          refId: req.params.id,
+          ref_id: req.params.id,
+          notes: 'PO received',
+        });
       }
     }
-    await client.query('COMMIT');
-    res.json({ message: 'Status updated' });
-  } catch (err) {
-    await client.query('ROLLBACK');
-    throw err;
-  } finally {
-    client.release();
   }
+
+  res.json({ message: 'Status updated' });
 }));
 
 export default router;

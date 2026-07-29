@@ -1,21 +1,6 @@
-import { Pool } from 'pg';
-import dotenv from 'dotenv';
-
-dotenv.config();
-
-const pool = new Pool({
-  host:     process.env.DB_HOST     || 'localhost',
-  port:     Number(process.env.DB_PORT) || 5432,
-  user:     process.env.DB_USER     || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
-  database: process.env.DB_NAME     || 'syncerp',
-  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
-  max: 10,
-  idleTimeoutMillis: 30000,
-});
-
-pool.on('error', (err) => {
-  console.error('PostgreSQL pool error:', err);
-});
-
+// PostgreSQL pool retired in favor of MongoDB Atlas
+export const pool = {
+  query: async () => ({ rows: [] }),
+  connect: async () => ({ query: async () => ({ rows: [] }), release: () => {} }),
+};
 export default pool;

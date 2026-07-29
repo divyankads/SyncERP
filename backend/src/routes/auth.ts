@@ -1,8 +1,6 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-// @ts-ignore
-import db from '../../db';
 import { UserModel } from '../db/mongo';
 
 const router = Router();
@@ -26,48 +24,25 @@ router.post('/login', async (req: Request, res: Response) => {
   }
 
   const cleanEmail = String(email).trim().toLowerCase();
-  let user: any = null;
+  const mongoUser = await UserModel.findOne({ email: cleanEmail, status: 'active' });
 
-  // 1. Try MongoDB Atlas user store
-  try {
-    const mongoUser = await UserModel.findOne({ email: cleanEmail, status: 'active' });
-    if (mongoUser) {
-      user = {
-        id: mongoUser._id.toString(),
-        name: mongoUser.name,
-        email: mongoUser.email,
-        password: mongoUser.password,
-        role: mongoUser.role,
-      };
-    }
-  } catch (err) {
-    console.warn('MongoDB lookup warning:', err);
-  }
-
-  // 2. Fall back to SQLite local db
-  if (!user && db && typeof db.prepare === 'function') {
-    try {
-      const sqliteUser = db.prepare('SELECT * FROM users WHERE email = ? AND status = ?').get(cleanEmail, 'active');
-      if (sqliteUser) {
-        user = sqliteUser;
-      }
-    } catch (err) {
-      console.warn('SQLite lookup warning:', err);
-    }
-  }
-
-  if (!user || !user.password || !bcrypt.compareSync(password, user.password)) {
+  if (!mongoUser || !mongoUser.password || !bcrypt.compareSync(password, mongoUser.password)) {
     res.status(401).json({ error: 'Invalid email or password' });
     return;
   }
 
-  const payload = { id: user.id, name: user.name, email: user.email, role: user.role };
+  const payload = {
+    id: mongoUser._id.toString(),
+    name: mongoUser.name,
+    email: mongoUser.email,
+    role: mongoUser.role,
+  };
   const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES });
 
   res.json({
     token,
     user: payload,
-    permissions: PERMISSIONS[user.role] || [],
+    permissions: PERMISSIONS[mongoUser.role] || [],
   });
 });
 
