@@ -5,13 +5,20 @@
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc",
-    "start": "npm run build && node dist/server.js",
+    "start": "node dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "db:migrate": "ts-node src/db/migrate.ts",
     "db:seed": "ts-node src/db/seed.ts",
     "db:seed-mongo": "ts-node src/db/seed-mongo.ts"
   },
   "dependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/mongoose": "^5.11.96",
+    "@types/node": "^20.11.30",
+    "@types/pg": "^8.11.5",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^13.0.1",
     "cors": "^2.8.5",
@@ -20,18 +27,11 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.8.1",
     "pg": "^8.11.5",
+    "typescript": "^5.4.3",
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
-    "@types/cors": "^2.8.17",
-    "@types/express": "^4.17.21",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/mongoose": "^5.11.96",
-    "@types/node": "^20.11.30",
-    "@types/pg": "^8.11.5",
     "ts-node": "^10.9.2",
-    "ts-node-dev": "^2.0.0",
-    "typescript": "^5.4.3"
+    "ts-node-dev": "^2.0.0"
   }
 }

@@ -25,8 +25,8 @@ jobs:
         run: npm ci
         working-directory: backend
 
-      - name: Validate backend (syntax check)
-        run: node -e "require('./server.js')" 2>&1 | grep -v "EPERM\|listen\|Error" || true
+      - name: Build backend
+        run: npm run build
         working-directory: backend
 
       - name: Install frontend deps
