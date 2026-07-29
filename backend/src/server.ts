@@ -13,6 +13,9 @@ import challansRouter       from './routes/challans';
 import invoicesRouter       from './routes/invoices';
 import crmRouter            from './routes/crm';
 import stockRouter          from './routes/stock';
+import authRouter           from './routes/auth';
+
+import connectMongoDB from './db/mongo';
 
 dotenv.config();
 
@@ -29,6 +32,7 @@ app.get('/health', (_req, res) => {
 });
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
+app.use('/api/auth',            authRouter);
 app.use('/api/dashboard',       dashboardRouter);
 app.use('/api/customers',       customersRouter);
 app.use('/api/products',        productsRouter);
@@ -51,16 +55,23 @@ app.use(errorHandler);
 const PORT = Number(process.env.PORT) || 5001;
 
 async function start(): Promise<void> {
+  // Connect to MongoDB Atlas
   try {
-    await pool.query('SELECT 1'); // verify DB connection
-    console.log('✅ PostgreSQL connected');
-    app.listen(PORT, () => console.log(`🚀 SyncERP API running on http://localhost:${PORT}`));
+    if (process.env.MONGODB_URI) {
+      await connectMongoDB();
+    }
   } catch (err) {
-    console.error('❌ Failed to connect to PostgreSQL:', err);
-    console.log('💡 Falling back to SQLite mode for local development...');
-    // Fallback: start server anyway (SQLite routes in db/pool-sqlite.ts would be used)
-    app.listen(PORT, () => console.log(`🚀 SyncERP API (offline mode) on http://localhost:${PORT}`));
+    console.error('⚠️ MongoDB connection warning:', err instanceof Error ? err.message : err);
   }
+
+  try {
+    await pool.query('SELECT 1'); // verify Postgres connection
+    console.log('✅ PostgreSQL connected');
+  } catch (err) {
+    console.log('💡 PostgreSQL not connected, running with active database drivers.');
+  }
+
+  app.listen(PORT, () => console.log(`🚀 SyncERP API running on http://localhost:${PORT}`));
 }
 
 start();

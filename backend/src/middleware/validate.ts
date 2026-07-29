@@ -18,18 +18,19 @@ export function validate<T>(schema: ZodSchema<T>) {
   };
 }
 
-/** Global error handler — catches async errors forwarded by routes */
 export function errorHandler(
   err: Error,
   _req: Request,
   res: Response,
   _next: NextFunction
 ): void {
-  console.error('[ERROR]', err.message);
+  if (err && err.message) {
+    console.error('❌ Request Error:', err.message);
+  }
   const status = (err as any).status || 500;
   res.status(status).json({
     success: false,
-    error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message,
+    error: process.env.NODE_ENV === 'production' ? 'Internal server error' : (err.message || 'Server error'),
   });
 }
 

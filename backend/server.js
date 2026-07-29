@@ -1,8 +1,17 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const db = require('./db');
+
+const MONGODB_URI = process.env.MONGODB_URI;
+if (MONGODB_URI) {
+  mongoose.connect(MONGODB_URI)
+    .then(() => console.log('✅ MongoDB Atlas connected successfully'))
+    .catch(err => console.error('⚠️ MongoDB Atlas connection error:', err.message));
+}
 
 const app = express();
 app.use(cors());
@@ -50,13 +59,41 @@ app.get('/health', (_req, res) => res.json({ status: 'ok', ts: new Date().toISOS
 // AUTH ROUTES  (public)
 // ══════════════════════════════════════════════════════════════════════════════
 
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password)
     return res.status(400).json({ error: 'Email and password are required' });
 
-  const user = db.prepare('SELECT * FROM users WHERE email = ? AND status = ?').get(email.trim().toLowerCase(), 'active');
-  if (!user || !bcrypt.compareSync(password, user.password))
+  const cleanEmail = email.trim().toLowerCase();
+  let user = null;
+
+  // 1. Check MongoDB Atlas
+  try {
+    if (mongoose.connection.readyState >= 1) {
+      const UserCollection = mongoose.connection.collection('users');
+      const mongoUser = await UserCollection.findOne({ email: cleanEmail, status: 'active' });
+      if (mongoUser) {
+        user = {
+          id: mongoUser._id.toString(),
+          name: mongoUser.name,
+          email: mongoUser.email,
+          password: mongoUser.password,
+          role: mongoUser.role,
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('MongoDB auth lookup warning:', err.message);
+  }
+
+  // 2. Fall back to SQLite
+  if (!user && db && typeof db.prepare === 'function') {
+    try {
+      user = db.prepare('SELECT * FROM users WHERE email = ? AND status = ?').get(cleanEmail, 'active');
+    } catch (_) {}
+  }
+
+  if (!user || !user.password || !bcrypt.compareSync(password, user.password))
     return res.status(401).json({ error: 'Invalid email or password' });
 
   const payload = { id: user.id, name: user.name, email: user.email, role: user.role };

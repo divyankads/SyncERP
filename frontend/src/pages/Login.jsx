@@ -3,13 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 
-const DEMO_ACCOUNTS = [
-  { role: 'Admin',     email: 'admin@syncerp.com',     password: 'admin123',     color: '#6c63ff' },
-  { role: 'Sales',     email: 'sales@syncerp.com',     password: 'sales123',     color: '#22c55e' },
-  { role: 'Warehouse', email: 'warehouse@syncerp.com',  password: 'warehouse123', color: '#f97316' },
-  { role: 'Accounts',  email: 'accounts@syncerp.com',   password: 'accounts123',  color: '#3b82f6' },
-];
-
 export default function Login() {
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
@@ -38,8 +31,6 @@ export default function Login() {
       setLoading(false);
     }
   };
-
-  const fillDemo = (acc) => { setEmail(acc.email); setPassword(acc.password); };
 
   return (
     <div style={{
@@ -92,34 +83,6 @@ export default function Login() {
               {loading ? '⏳ Signing in...' : '→  Sign In'}
             </button>
           </form>
-        </div>
-
-        {/* Demo accounts */}
-        <div style={{ marginTop: 24 }}>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Demo Accounts</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            {DEMO_ACCOUNTS.map(acc => (
-              <button
-                key={acc.role}
-                onClick={() => fillDemo(acc)}
-                style={{
-                  background: 'var(--bg-card)', border: '1px solid var(--border)',
-                  borderRadius: 10, padding: '10px 14px', cursor: 'pointer',
-                  textAlign: 'left', transition: 'var(--transition)', color: 'var(--text-primary)',
-                }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = acc.color}
-                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: acc.color }} />
-                  <span style={{ fontSize: 12, fontWeight: 700, color: acc.color }}>{acc.role}</span>
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{acc.email}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{acc.password}</div>
-              </button>
-            ))}
-          </div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', marginTop: 10 }}>Click any card to auto-fill credentials</div>
         </div>
       </div>
     </div>
