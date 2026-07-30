@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://divi:qwe123@ver1.izmmvap.mongodb.net/syncerp?retryWrites=true&w=majority';
+const MONGODB_URI = process.env.MONGODB_URI ;
 
 // ─── Connection Manager ───────────────────────────────────────────────────────
 export async function connectMongoDB(): Promise<typeof mongoose> {
